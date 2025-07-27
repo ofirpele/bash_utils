@@ -307,6 +307,18 @@ function git_diff_workspace_to_remote_same_commit()
   echo "-------------------------------------------------------------------"
 }
 
+function git_diff_commit_or_branch_to_this_branch()
+{
+  if [[ ($# -ne 1) ]]; then
+    echo "Illegal number of parameters" >&2
+    echo "usage:" >&2
+    echo "${FUNCNAME[0]} commit/branch" >&2
+    return 2
+  fi
+  this_branch=$(parse_git_branch)
+  git difftool "$1" origin/"$this_branch" --dir-diff
+}
+
 function git_tag()
 {
   if [[ ($# -ne 1) ]]; then
@@ -393,6 +405,18 @@ function git__project_name()
   local foldername=${1%.git}
   local foldername=$(basename "${foldername}")
   echo "${foldername}"
+}
+
+function git__howto_windows_change_github_user_credentials()
+{
+  echo "
+Search for Control panel and open it
+- Search for Credential Manager and open it
+- Click on Windows Credentials (logo of screen near safe)
+- Under Generic Credentials (the long list) click on git:https://githubn.com
+- Click on Remove and then confirm by clicking Yes button
+- Now start pushing the code and you will get GitHub popup to login again
+"
 }
 #####################################
 
