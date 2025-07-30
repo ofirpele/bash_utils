@@ -143,7 +143,7 @@ function git_add_all_commit_pull_and_push()
   git add --all
   echo ""
   echo "Committing:"
-  git commit -m "$*"
+  git commit -m"$(echo -e "$*")"
   echo ""
   echo "Pulling:"
   git_pull
@@ -151,7 +151,7 @@ function git_add_all_commit_pull_and_push()
   echo "Fixing conflicts if any:"
   git mergetool
   git add --all
-  git commit -m "Merge $*" 
+  git commit -m"$(echo -e "Merge\n$*")"
   echo ""
   echo "Pushing:"
   git push
@@ -210,7 +210,7 @@ function git_merge_remote_branch_to_this_remote_branch()
   echo "Fixing conflicts if any:"
   git mergetool
   git add --all
-  git commit -m "Merge $*"
+  git commit -m"$(echo -e "Merge\n$*")"
   echo ""
   echo "Pushing:"
   git push
@@ -390,7 +390,7 @@ function git__change_last_commit_message()
     echo "${FUNCNAME[0]} commit message" >&2
     return 2
   fi
-  git commit --amend -m "$@"
+  git commit --amend -m"$(echo -e "$*")"
   git push --progress origin --force
 }
 
