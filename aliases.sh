@@ -325,7 +325,7 @@ function git_ls()
     echo "No parameters should be given" >&2
     return 2
   fi
-  git tag -l --format='%(creatordate:short) %(refname:short)'
+  git tag -l --format='%(creatordate:short) %(refname:short)' --sort=creatordate
 }
 
 function git_tag()
