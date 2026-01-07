@@ -319,6 +319,15 @@ function git_diff_commit_or_branch_to_this_branch()
   git difftool "$1" origin/"$this_branch" --dir-diff
 }
 
+function git_ls()
+{
+  if [[ ($# -ne 0) ]]; then
+    echo "No parameters should be given" >&2
+    return 2
+  fi
+  git tag -l --format='%(creatordate:short) %(refname:short)'
+}
+
 function git_tag()
 {
   if [[ ($# -ne 1) ]]; then
