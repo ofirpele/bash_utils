@@ -37,8 +37,19 @@ alias cl='clear'
 
 alias sa='source ~/.bashrc'
 
-alias code_here='code -r .'
-alias code_add_here='code -a .'
+function code_here_if_git()
+{
+  if [ -d .git ]; then
+    code -r .
+  fi
+}
+
+function code_add_here_if_git()
+{
+  if [ -d .git ]; then
+    code -a .
+  fi
+}
 
 alias fixshell='echo -ne "\\017"'
 
@@ -170,6 +181,17 @@ function git_pull()
   fi
   git submodule foreach --recursive git pull
   git pull
+}
+
+function git_pull_if_git()
+{
+  if [ -d .git ]; then
+    local out
+    out="$(git_pull 2>&1)"
+    if [ "$out" != "Already up to date." ]; then
+      printf '%s\n' "$out"
+    fi
+  fi
 }
 
 function git_status()

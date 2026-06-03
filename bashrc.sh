@@ -2,6 +2,7 @@
 
 # local bin
 [ -d "$HOME/.local/bin" ] && export PATH="$PATH:$HOME/.local/bin"
+
 # javascript related
 NODIST_BIN_DIR__=$(echo "$NODIST_PREFIX" | sed -e 's,\\,/,g')/bin; if [ -f "$NODIST_BIN_DIR__/nodist.sh" ]; then . "$NODIST_BIN_DIR__/nodist.sh"; fi; unset NODIST_BIN_DIR__;
 
@@ -22,8 +23,8 @@ title_window_basename_pwd
 
 function cd() {
   command cd "$@"
-  code_add_here
-  git_pull
+  code_add_here_if_git
+  git_pull_if_git
   title_window_basename_pwd
 }
 #############################################################################################
