@@ -35,9 +35,10 @@ function c()
 
 alias cl='clear'
 
-alias sh_reload='source ~/.bashrc'
+alias sa='source ~/.bashrc'
 
 alias code_here='code -r .'
+alias code_add_here='code -a .'
 
 alias fixshell='echo -ne "\\017"'
 

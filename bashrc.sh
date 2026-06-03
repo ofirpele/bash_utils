@@ -22,6 +22,8 @@ title_window_basename_pwd
 
 function cd() {
   command cd "$@"
+  code_add_here
+  git_pull
   title_window_basename_pwd
 }
 #############################################################################################
