@@ -1,5 +1,10 @@
 #sudo systemctl start docker
 
+# local bin
+[ -d "$HOME/.local/bin" ] && export PATH="$PATH:$HOME/.local/bin"
+# javascript related
+NODIST_BIN_DIR__=$(echo "$NODIST_PREFIX" | sed -e 's,\\,/,g')/bin; if [ -f "$NODIST_BIN_DIR__/nodist.sh" ]; then . "$NODIST_BIN_DIR__/nodist.sh"; fi; unset NODIST_BIN_DIR__;
+
 #############################################################################################
 # window\tab title manipulations:
 # will present basename of folder and
