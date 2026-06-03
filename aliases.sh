@@ -35,6 +35,10 @@ function c()
 
 alias cl='clear'
 
+alias sh_reload='source ~/.bashrc'
+
+alias code_here='code -r .'
+
 alias fixshell='echo -ne "\\017"'
 
 function computersleep() 
