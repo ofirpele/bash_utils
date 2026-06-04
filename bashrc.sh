@@ -23,7 +23,7 @@ title_window_basename_pwd
 
 function cd() {
   command cd "$@"
-  code_add_here_if_git
+  code_here_if_git
   git_pull_if_git
   title_window_basename_pwd
 }
