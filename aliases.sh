@@ -171,7 +171,12 @@ function git_add_all_commit_pull_and_push()
   git commit -m"$(echo -e "Merge\n$*")"
   echo ""
   echo "Pushing:"
-  git push
+  local push_out
+  push_out="$(git push 2>&1)"
+  printf '%s\n' "$push_out"
+  if printf '%s' "$push_out" | grep -qi "up-to-date"; then
+    printf '\n\033[31mcheck if you are in the right folder!\033[0m\n'
+  fi
 }
 
 function git_pull()
