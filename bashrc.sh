@@ -27,6 +27,13 @@ function cd() {
   git_pull_if_git
   title_window_basename_pwd
 }
+
+function cda() {
+  command cd "$@"
+  code_add_here_if_git
+  git_pull_if_git
+  title_window_basename_pwd
+}
 #############################################################################################
 
 
