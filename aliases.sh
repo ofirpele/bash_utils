@@ -179,6 +179,11 @@ function git_add_all_commit_pull_and_push()
   fi
 }
 
+function gar()
+{
+  git_add_all_commit_pull_and_push features or and refactoring
+}
+
 function git_pull()
 {
   if [[ ($# -ne 0) ]]; then
