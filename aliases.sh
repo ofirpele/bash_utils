@@ -24,6 +24,49 @@ function update_bash_utils()
 
 
 ###################################################################
+# argument-count helpers
+###################################################################
+# Fails (return 2) unless the caller was given no arguments.
+# usage: _require_no_args "$#" || return
+function _require_no_args()
+{
+  if [[ $1 -ne 0 ]]; then
+    echo "No parameters should be given" >&2
+    return 2
+  fi
+}
+
+# Fails (return 2) unless the caller's arg count is one of the allowed counts.
+# usage: _require_nargs "$#" "<usage args>" <allowed_count>... || return
+function _require_nargs()
+{
+  local n="$1" usage="$2"; shift 2
+  local a
+  for a in "$@"; do
+    [[ $n -eq $a ]] && return 0
+  done
+  echo "Illegal number of parameters" >&2
+  echo "usage:" >&2
+  echo "${FUNCNAME[1]} ${usage}" >&2
+  return 2
+}
+
+# Fails (return 2) unless the caller got at least <min> arguments.
+# usage: _require_min_nargs "$#" <min> "<usage args>" || return
+function _require_min_nargs()
+{
+  local n="$1" min="$2" usage="$3"
+  if [[ $n -lt $min ]]; then
+    echo "Illegal number of parameters" >&2
+    echo "usage:" >&2
+    echo "${FUNCNAME[1]} ${usage}" >&2
+    return 2
+  fi
+}
+###################################################################
+
+
+###################################################################
 # various
 ###################################################################
 # calculator use [] instead of ()
@@ -96,12 +139,7 @@ alias nvidiagpuinfo='nvidia-smi -L'
 #####################################
 function git_clone_project()
 {
-  if [[ ($# -ne 1 && $# -ne 2) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} URL <branch>" >&2
-    return 2
-  fi
+  _require_nargs "$#" "URL <branch>" 1 2 || return
   if [[ ($# -eq 1) ]]; then
     git clone --recurse-submodules -j8 "${1}"
   else
@@ -148,14 +186,9 @@ function git_clone_project()
 #####################################
 function git_add_all_commit_pull_and_push()
 {
-   if (( $# < 1 )); then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} comment" >&2
-    echo "" >&2
-    echo "comment can contain several words" >&2
-    return 2
-  fi
+  _require_min_nargs "$#" 1 "comment
+
+comment can contain several words" || return
   echo "Adding all:"
   git add --all
   echo ""
@@ -186,10 +219,7 @@ function gar()
 
 function git_pull()
 {
-  if [[ ($# -ne 0) ]]; then
-    echo "No parameters should be given" >&2
-    return 2
-  fi
+  _require_no_args "$#" || return
   git submodule foreach --recursive git pull
   git pull
 }
@@ -207,33 +237,20 @@ function git_pull_if_git()
 
 function git_status()
 {
-  if [[ ($# -ne 0) ]]; then
-    echo "No parameters should be given" >&2
-    return 2
-  fi
+  _require_no_args "$#" || return
   git submodule foreach --recursive git status
   git status
 }
 
 function git_checkout()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} tag_name/branch_name" >&2
-    return 2
-  fi
+  _require_nargs "$#" "tag_name/branch_name" 1 || return
   git checkout "$@"
 }
 
 function git_merge_remote_branch_to_this_remote_branch()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} branch_name" >&2
-    return 2
-  fi
+  _require_nargs "$#" "branch_name" 1 || return
   echo "Pulling to this branch:"
   git_pull
   this_branch=$(parse_git_branch)
@@ -268,10 +285,7 @@ function git_cd_top_level()
 
 function git_diff_local_commit_to_remote()
 {
-  if [[ ($# -ne 0) ]]; then
-    echo "No parameters should be given" >&2
-    return 2
-  fi
+  _require_no_args "$#" || return
 
   this_branch=$(parse_git_branch)
   git fetch origin "$this_branch" &>/dev/null
@@ -281,10 +295,7 @@ function git_diff_local_commit_to_remote()
 
 function git_diff_workspace_to_remote_same_commit()
 {
-  if [[ ($# -ne 0) ]]; then
-    echo "No parameters should be given" >&2
-    return 2
-  fi
+  _require_no_args "$#" || return
 
   git_status_output=$(git status | grep behind)
   if [[ -n "$git_status_output" ]]; then
@@ -347,45 +358,27 @@ function git_diff_workspace_to_remote_same_commit()
 
 function git_diff_commit_or_branch_to_this_branch()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} commit/branch" >&2
-    return 2
-  fi
+  _require_nargs "$#" "commit/branch" 1 || return
   this_branch=$(parse_git_branch)
   git difftool "$1" origin/"$this_branch" --dir-diff
 }
 
 function git_tag_ls()
 {
-  if [[ ($# -ne 0) ]]; then
-    echo "No parameters should be given" >&2
-    return 2
-  fi
+  _require_no_args "$#" || return
   git tag -l --format='%(creatordate:short) %(refname:short)' --sort=creatordate
 }
 
 function git_tag()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} tag_name" >&2
-    return 2
-  fi
+  _require_nargs "$#" "tag_name" 1 || return
   git tag "$@"
   git push --tags
 }
 
 function git_tag_delete()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} tag_name" >&2
-    return 2
-  fi
+  _require_nargs "$#" "tag_name" 1 || return
   git tag -d "$@"
   git push --delete origin "$@"
   git remote prune origin
@@ -396,12 +389,7 @@ function git_tag_delete()
 #####################################
 function git__submodule_add()
 {
-  if [[ ($# -ne 2) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} branch URL" >&2
-    return 2
-  fi
+  _require_nargs "$#" "branch URL" 2 || return
   git submodule add -b "$1" "$2"
 }
 
@@ -418,12 +406,7 @@ function git__pull_hard()
 
 function git__push_revert_back_to_commit()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} commit_id" >&2
-    return 2
-  fi
+  _require_nargs "$#" "commit_id" 1 || return
   git checkout -f "$1" -- .
   git commit -a -m "reverting back to commit "$1""
   git push
@@ -431,24 +414,14 @@ function git__push_revert_back_to_commit()
 
 function git__change_last_commit_message()
 {
-  if [[ ($# -lt 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} commit message" >&2
-    return 2
-  fi
+  _require_min_nargs "$#" 1 "commit message" || return
   git commit --amend -m"$(echo -e "$*")"
   git push --progress origin --force
 }
 
 function git__project_name()
 {
-  if [[ ($# -ne 1) ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} URL" >&2
-    return 2
-  fi
+  _require_nargs "$#" "URL" 1 || return
   local foldername=${1%.git}
   local foldername=$(basename "${foldername}")
   echo "${foldername}"
@@ -706,12 +679,7 @@ function new_less()
 
 function cat_file_with_single_number_as_scientific()
 {
-    if [[ ($# -ne 1 && $# -ne 2) ]]; then
-        echo "Illegal number of parameters" >&2
-        echo "usage:" >&2
-        echo "${FUNCNAME[0]} filename <number of digits after decimal point>" >&2
-        return 2
-    fi
+    _require_nargs "$#" "filename <number of digits after decimal point>" 1 2 || return
     local private_digits_num=1
     if [[ ($# -eq 2) ]]; then
         local private_digits_num="$2"
@@ -916,12 +884,7 @@ function tc()
 # compress a folder a/b/c/ or c/ into ./c.tgz
 function tcf()
 {
-  if [[ $# -ne 1 ]]; then
-    echo "Illegal number of parameters" >&2
-    echo "usage:" >&2
-    echo "${FUNCNAME[0]} folder_name" >&2
-    return 2
-  fi
+  _require_nargs "$#" "folder_name" 1 || return
   tc ./$(basename $1).tgz "$1"
 }
 
