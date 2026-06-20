@@ -991,13 +991,13 @@ tex_compile() {
     fi
 
     echo "==> Compiling $tex_file (pass 1/2)..."
-    pdflatex -interaction=nonstopmode -halt-on-error -output-directory="$out_dir" "$tex_file" || {
+    pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory="$out_dir" "$tex_file" || {
         echo "ERROR: pdflatex failed. See ${base}.log for details." >&2
         return 1
     }
 
     echo "==> Compiling $tex_file (pass 2/2)..."
-    pdflatex -interaction=nonstopmode -halt-on-error -output-directory="$out_dir" "$tex_file" || {
+    pdflatex -shell-escape -interaction=nonstopmode -halt-on-error -output-directory="$out_dir" "$tex_file" || {
         echo "ERROR: pdflatex failed on second pass. See ${base}.log for details." >&2
         return 1
     }
