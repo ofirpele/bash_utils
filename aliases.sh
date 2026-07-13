@@ -69,6 +69,12 @@ function _require_min_nargs()
 ###################################################################
 # various
 ###################################################################
+function install_tools()
+{
+  uv tool install ruff@latest
+  uv tool install ty@latest
+}
+
 # calculator use [] instead of ()
 function c() 
 { 
