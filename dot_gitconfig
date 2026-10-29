@@ -2,28 +2,39 @@
 	email = 
 	name = 
 
-[credential]
-	helper = store
+[merge]
+	tool = bc
 
-[core]
-	safecrlf = false
-	filemode = false
+[diff]
+	tool = bc
 
 [mergetool]
     prompt = false
     keepBackup = false
     keepTemporaries = false
 
-[merge]
-    tool = winmerge
+[difftool]
+	prompt = false
+
+[credential]
+	helper = store
+
+[core]
+	safecrlf = false
+	filemode = false
+	autocrlf = input
+
+[mergetool "bc"]
+	trustExitCode = true
+	cmd = \"E:/programs/Beyond Compare 5/BComp.exe\" \"$LOCAL\" \"$MERGED\" \"$REMOTE\" \"$BASE\" /mergeoutput=\"$MERGED\"
+
+[difftool "bc"]
+	cmd = \"E:/programs/Beyond Compare 5/BComp.exe\" \"$LOCAL\" \"$REMOTE\"
 
 [mergetool "winmerge"]
     name = WinMerge
     trustExitCode = true
     cmd = "/c/Program\\ Files/WinMerge/WinMergeU.exe" -u -e -dl \"Local\" -dr \"Remote\" $LOCAL $REMOTE $MERGED
-
-[diff]
-    tool = winmerge
 
 [difftool "winmerge"]
     name = WinMerge
