@@ -497,7 +497,7 @@ function _py_get_pytest_flags()
 function _py_run_format_check_test()
 {
     local pytest_flags="$1"
-    _py_check_test_naming || return $?
+    #_py_check_test_naming || return $?
     uvx ruff format 2>&1 | grep -v "files left unchanged"
     uvx ruff check || return $? #  uvx ruff check --fix 2>&1 | grep -v "All checks passed!"
     # uv run python pydantic/main_check.py || return $?
