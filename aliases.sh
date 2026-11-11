@@ -157,6 +157,18 @@ function _is_linux()
 # python related (uv, ruff, ty)
 ###################################################################
 
+# current time in integer milliseconds
+function _now_ms()
+{
+    echo $(( $(date +%s%N) / 1000000 ))
+}
+
+# format integer milliseconds as seconds with 2 decimals, e.g. 1374 -> 1.37
+function _ms_to_s()
+{
+    printf "%d.%02d" $(( $1 / 1000 )) $(( $1 % 1000 / 10 ))
+}
+
 function py_test_tune_threads()
 {
     echo "=========================================="
@@ -185,78 +197,70 @@ function py_test_tune_threads()
     echo ""
 
     echo "--- Testing REGULAR pytest ---"
-    local best_time_test=999999
+    local best_ms_test=999999999
     local best_threads_test=1
-    local performance_degradation_threshold="1.05"
+    local degradation_threshold_pct=105
 
     for threads in "${thread_counts[@]}"; do
         echo -n "Testing with $threads threads... "
 
-        local total_time=0
+        local total_ms=0
         local runs=3
 
         for ((i=1; i<=runs; i++)); do
-            local start_time=$(date +%s.%N)
+            local start_ms=$(_now_ms)
             uv run pytest -q -n $threads > /dev/null 2>&1
-            local end_time=$(date +%s.%N)
-            local elapsed=$(echo "$end_time - $start_time" | bc)
-            total_time=$(echo "$total_time + $elapsed" | bc)
+            local end_ms=$(_now_ms)
+            (( total_ms += end_ms - start_ms ))
         done
 
-        local avg_time=$(echo "scale=2; $total_time / $runs" | bc)
-        echo "Average time: ${avg_time}s"
+        local avg_ms=$(( total_ms / runs ))
+        echo "Average time: $(_ms_to_s $avg_ms)s"
 
-        if (( $(echo "$avg_time < $best_time_test" | bc -l) )); then
-            best_time_test=$avg_time
+        if (( avg_ms < best_ms_test )); then
+            best_ms_test=$avg_ms
             best_threads_test=$threads
-        else
-            local threshold_time=$(echo "scale=2; $best_time_test * $performance_degradation_threshold" | bc)
-            if (( $(echo "$avg_time > $threshold_time" | bc -l) )); then
-                echo "  Performance degradation detected. Stopping regular test tuning."
-                break
-            fi
+        elif (( avg_ms * 100 > best_ms_test * degradation_threshold_pct )); then
+            echo "  Performance degradation detected. Stopping regular test tuning."
+            break
         fi
     done
 
     echo ""
     echo "--- Testing pytest with COVERAGE ---"
-    local best_time_cov=999999
+    local best_ms_cov=999999999
     local best_threads_cov=1
 
     for threads in "${thread_counts[@]}"; do
         echo -n "Testing with $threads threads... "
 
-        local total_time=0
+        local total_ms=0
         local runs=2
 
         for ((i=1; i<=runs; i++)); do
-            local start_time=$(date +%s.%N)
+            local start_ms=$(_now_ms)
             uv run pytest -q --cov --cov-report= -n $threads > /dev/null 2>&1
-            local end_time=$(date +%s.%N)
-            local elapsed=$(echo "$end_time - $start_time" | bc)
-            total_time=$(echo "$total_time + $elapsed" | bc)
+            local end_ms=$(_now_ms)
+            (( total_ms += end_ms - start_ms ))
         done
 
-        local avg_time=$(echo "scale=2; $total_time / $runs" | bc)
-        echo "Average time: ${avg_time}s"
+        local avg_ms=$(( total_ms / runs ))
+        echo "Average time: $(_ms_to_s $avg_ms)s"
 
-        if (( $(echo "$avg_time < $best_time_cov" | bc -l) )); then
-            best_time_cov=$avg_time
+        if (( avg_ms < best_ms_cov )); then
+            best_ms_cov=$avg_ms
             best_threads_cov=$threads
-        else
-            local threshold_time=$(echo "scale=2; $best_time_cov * $performance_degradation_threshold" | bc)
-            if (( $(echo "$avg_time > $threshold_time" | bc -l) )); then
-                echo "  Performance degradation detected. Stopping coverage test tuning."
-                break
-            fi
+        elif (( avg_ms * 100 > best_ms_cov * degradation_threshold_pct )); then
+            echo "  Performance degradation detected. Stopping coverage test tuning."
+            break
         fi
     done
 
     echo ""
     echo "=========================================="
     echo "RESULTS:"
-    echo "Regular pytest: $best_threads_test threads (${best_time_test}s)"
-    echo "Coverage pytest: $best_threads_cov threads (${best_time_cov}s)"
+    echo "Regular pytest: $best_threads_test threads ($(_ms_to_s $best_ms_test)s)"
+    echo "Coverage pytest: $best_threads_cov threads ($(_ms_to_s $best_ms_cov)s)"
     echo "=========================================="
 
     # Cache the results (use 0 for serial execution with -n 1)
@@ -595,7 +599,7 @@ function _py_test_no_clear()
 
             # Calculate totals
             local total_count=$((main_count + linux_count))
-            local total_time=$(echo "$main_time + $linux_time" | bc)
+            local total_time=$(awk -v a="$main_time" -v b="$linux_time" 'BEGIN{printf "%.2f", a+b}')
 
             # Print bold green total
             echo -e "\033[1;92m$total_count passed in ${total_time}s\033[0m"
