@@ -1,69 +1,92 @@
-function marp_create_presentation()
+_MARP_DIR="presentation"
+_MARP_SOURCE="$_MARP_DIR/presentation.md"
+_MARP_WITH_IMAGES="$_MARP_DIR/presentation_with_images.md"
+_MARP_OUTPUT="$_MARP_DIR/presentation.pdf"
+_MARP_THEME="$_MARP_DIR/presentation.css"
+
+function _marp_cd_root()
 {
-    cd "$(git rev-parse --show-toplevel)" || return 1
-
-    local input_file="presentation/presentation_with_images.md"
-    local output_file="presentation/presentation.pdf"
-
-    # Check if cached presentation_with_images.md exists
-    if [[ ! -f "$input_file" ]]; then
-        echo "ERROR: Cached file '$input_file' not found" >&2
-        echo "Run 'py_create_presentation_full' first to render diagrams" >&2
+    local root
+    if ! root="$(git rev-parse --show-toplevel 2> /dev/null)"; then
+        echo "ERROR: Not inside a git repository" >&2
         return 1
     fi
 
-    # Check if marp-cli is installed
-    if ! command -v marp &> /dev/null; then
-        echo "Installing marp-cli..." >&2
-        npm install -g @marp-team/marp-cli
-        if [[ $? -ne 0 ]]; then
-            echo "ERROR: Failed to install marp-cli" >&2
-            echo "You can try installing it manually with: npm install -g @marp-team/marp-cli" >&2
-            return 1
-        fi
-    fi
-
-    # Use cached presentation_with_images.md (no rendering)
-    echo "Using cached presentation (no re-rendering)..."
-    marp "$input_file" \
-        --pdf \
-        --allow-local-files \
-        --theme presentation \
-        --theme-set presentation/presentation.css \
-        --output "$output_file"
-
-    if [[ $? -eq 0 ]]; then
-        echo "Successfully generated: $output_file"
-        pdf_present "$output_file"
-        return 0
-    else
-        echo "ERROR: Failed to generate presentation PDF" >&2
+    if ! cd "$root"; then
+        echo "ERROR: Failed to cd to repository root '$root'" >&2
         return 1
     fi
 }
 
-function marp_create_presentation_full()
+function _marp_require_file()
 {
-    cd "$(git rev-parse --show-toplevel)" || return 1
+    local file="$1"
+    local hint="$2"
 
-    local input_file="presentation/presentation.md"
-    local output_file="presentation/presentation.pdf"
+    if [[ ! -f "$file" ]]; then
+        echo "ERROR: File '$file' not found" >&2
+        [[ -n "$hint" ]] && echo "$hint" >&2
+        return 1
+    fi
+}
 
-    if [[ ! -f "$input_file" ]]; then
-        echo "ERROR: Input file '$input_file' not found" >&2
+function _marp_ensure_cli()
+{
+    command -v marp &> /dev/null && return 0
+
+    echo "Installing marp-cli..." >&2
+    if ! npm install -g @marp-team/marp-cli; then
+        echo "ERROR: Failed to install marp-cli" >&2
+        echo "You can try installing it manually with: npm install -g @marp-team/marp-cli" >&2
+        return 1
+    fi
+}
+
+# Build the PDF from the given markdown file and open it.
+function _marp_build_pdf()
+{
+    local input_file="$1"
+
+    if ! marp "$input_file" \
+        --pdf \
+        --allow-local-files \
+        --theme-set "$_MARP_THEME" \
+        --output "$_MARP_OUTPUT"; then
+        echo "ERROR: Failed to generate presentation PDF" >&2
         return 1
     fi
 
-    # Check if marp-cli is installed
-    if ! command -v marp &> /dev/null; then
-        echo "Installing marp-cli..." >&2
-        npm install -g @marp-team/marp-cli
-        if [[ $? -ne 0 ]]; then
-            echo "ERROR: Failed to install marp-cli" >&2
-            echo "You can try installing it manually with: npm install -g @marp-team/marp-cli" >&2
-            return 1
-        fi
-    fi
+    echo "Successfully generated: $_MARP_OUTPUT"
+    pdf_present "$_MARP_OUTPUT"
+}
+
+function _marp_run_check()
+{
+    uv run --no-project --python ">=3.10" python "$HOME/bash_utils/scripts/check_presentation_overflow.py" "$_MARP_SOURCE"
+}
+
+function marp_check()
+{
+    _marp_cd_root || return 1
+    _marp_require_file "$_MARP_SOURCE" || return 1
+    _marp_run_check
+}
+
+function marp_create_presentation()
+{
+    _marp_cd_root || return 1
+    _marp_require_file "$_MARP_WITH_IMAGES" "Run 'marp_create_presentation_full' first to render diagrams" || return 1
+    _marp_ensure_cli || return 1
+
+    echo "Using cached presentation (no re-rendering)..."
+    _marp_build_pdf "$_MARP_WITH_IMAGES"
+}
+
+function marp_create_presentation_full()
+{
+    _marp_cd_root || return 1
+    _marp_require_file "$_MARP_SOURCE" || return 1
+    _marp_ensure_cli || return 1
 
     if ! command -v node &> /dev/null; then
         echo "ERROR: Node.js is required for Mermaid rendering" >&2
@@ -72,32 +95,16 @@ function marp_create_presentation_full()
 
     # Always render all diagrams (ignore git cache)
     echo "Rendering all mermaid diagrams (full render)..."
-    node "$HOME/bash_utils/scripts/render_mermaid.js" --force-full
-
-    if [[ $? -ne 0 ]]; then
+    if ! node "$HOME/bash_utils/scripts/render_mermaid.js" --force-full; then
         echo "ERROR: Failed to render Mermaid diagrams" >&2
         echo "Falling back to PDF without Mermaid diagrams..." >&2
-        marp "$input_file" --pdf --allow-local-files --theme presentation --theme-set presentation/presentation.css --output "$output_file"
-    else
-        # Generate PDF from the file with rendered images
-        marp "presentation/presentation_with_images.md" \
-            --pdf \
-            --allow-local-files \
-            --theme presentation \
-            --theme-set presentation/presentation.css \
-            --output "$output_file"
-
-        if [[ $? -eq 0 ]]; then
-            echo "Successfully generated: $output_file"
-            pdf_present "$output_file"
-
-            echo ""
-            uv run --no-project --python ">=3.10" python "$HOME/bash_utils/scripts/check_presentation_overflow.py" "$input_file"
-
-            return 0
-        else
-            echo "ERROR: Failed to generate presentation PDF" >&2
-            return 1
-        fi
+        _marp_build_pdf "$_MARP_SOURCE"
+        return
     fi
+
+    _marp_build_pdf "$_MARP_WITH_IMAGES" || return 1
+
+    echo ""
+    _marp_run_check
+    return 0
 }

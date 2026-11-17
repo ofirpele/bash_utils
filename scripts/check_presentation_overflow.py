@@ -4,6 +4,7 @@ Analyzes presentation markdown for potential overflow issues.
 Reports lines and slide numbers that may cause content overflow.
 """
 
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,17 @@ class OverflowIssue:
     issue_type: str
     details: str
     line_content: str = ""
+
+
+IMG_TAG_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+
+
+def is_image_only_line(line: str) -> bool:
+    """True if the line contains only <img> tags, table pipes and whitespace."""
+    if not IMG_TAG_RE.search(line):
+        return False
+    remainder = IMG_TAG_RE.sub("", line)
+    return not remainder.replace("|", "").strip()
 
 
 def calculate_line_height(line: str, prev_line_was_heading: bool) -> float:
@@ -65,6 +77,7 @@ def analyze_presentation_overflow(
     slide_effective_height = 0.0
     in_mermaid_block = False
     in_code_block = False
+    in_html_comment = False
     mermaid_block_start_line = 0
     mermaid_block_lines = 0
     prev_line_was_heading = False
@@ -78,6 +91,12 @@ def analyze_presentation_overflow(
 
     for i, line in enumerate(lines, start=1):
         line_stripped = line.rstrip()
+
+        # Inside a multi-line HTML comment: skip until it closes
+        if in_html_comment:
+            if "-->" in line_stripped:
+                in_html_comment = False
+            continue
 
         # Track slide boundaries
         if i > 1 and line_stripped == "---":
@@ -168,12 +187,18 @@ def analyze_presentation_overflow(
             code_block_lines += 1
             continue
 
-        # Skip HTML comments
-        if line_stripped.startswith("<!--"):
+        # Skip HTML comments (single- and multi-line, e.g. speaker notes)
+        if line_stripped.lstrip().startswith("<!--"):
+            if "-->" not in line_stripped.lstrip()[4:]:
+                in_html_comment = True
             continue
 
-        # Check line length
-        if line_stripped and len(line_stripped) > max_line_length:
+        # Check line length (skip lines made only of <img> tags, e.g. image tables)
+        if (
+            line_stripped
+            and len(line_stripped) > max_line_length
+            and not is_image_only_line(line_stripped)
+        ):
             details = f"Line length: {len(line_stripped)} chars (max: {max_line_length})"
             issues.append(
                 OverflowIssue(
