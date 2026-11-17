@@ -45,7 +45,7 @@ tex_compile() {
     rm -f "${base}.aux" "${base}.log" "${base}.out"
 
     echo "==> Opening $pdf_file in SumatraPDF..."
-    view_pdf "$pdf_file"
+    pdf_view "$pdf_file"
 }
 
 # not robust

@@ -199,7 +199,7 @@ function reduce_mp4_quality_this_dir()
 # pdf 
 ######################################################################
 # locate SumatraPDF and open the given PDF (no file locking).
-view_pdf() 
+pdf_view() 
 {
     local pdf_file="$1"
 
@@ -231,6 +231,131 @@ view_pdf()
         cmd.exe /c start "" "$pdf_file"
     fi
 }
+
+# open the given PDF in presentation (full-screen slideshow) mode.
+# prefers Okular; falls back to SumatraPDF (Windows), Evince/Chrome (Linux),
+# or the default PDF handler. Works in Git Bash/MSYS and on Linux.
+pdf_present()
+{
+    if [[ $# -ne 1 ]]; then
+        echo "Usage: pdf_present <file.pdf>" >&2
+        return 2
+    fi
+    if [[ ! -f "$1" ]]; then
+        echo "ERROR: file '$1' not found" >&2
+        return 1
+    fi
+
+    local abs_pdf_path
+    abs_pdf_path=$(realpath "$1")
+
+    local is_windows=0
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) is_windows=1 ;;
+    esac
+
+    # Windows-native programs need a Windows path (C:\...), not /c/...
+    local native_path="$abs_pdf_path"
+    if [[ $is_windows -eq 1 ]] && command -v cygpath >/dev/null 2>&1; then
+        native_path=$(cygpath -w "$abs_pdf_path")
+    fi
+
+    _pdf_present_nav_help()
+    {
+        echo "Navigation:"
+        echo "  - Page Down/Up or Arrow keys: Navigate slides"
+        echo "  - Space/Backspace: Next/Previous slide"
+        echo "  - Home/End: First/Last slide"
+        echo "  - ESC: Exit presentation mode"
+    }
+
+    if [[ $is_windows -eq 1 ]]; then
+        # Okular (e.g. Microsoft Store install exposes an 'okular' alias on PATH)
+        local okular_exe=""
+        if command -v okular >/dev/null 2>&1; then
+            okular_exe="okular"
+        else
+            local exe
+            for exe in "/c/Program Files/Okular/bin/okular.exe" \
+                       "$LOCALAPPDATA/Microsoft/WindowsApps/okular.exe" \
+                       "/c/ProgramData/chocolatey/bin/okular.exe"; do
+                if [[ -x "$exe" ]]; then okular_exe="$exe"; break; fi
+            done
+        fi
+        if [[ -n "$okular_exe" ]]; then
+            echo "Opening presentation in Okular..."
+            "$okular_exe" --presentation "$native_path" &>/dev/null &
+            disown 2>/dev/null
+            _pdf_present_nav_help
+            return 0
+        fi
+
+        # SumatraPDF has a presentation mode too
+        local sumatra_exe=""
+        if command -v SumatraPDF >/dev/null 2>&1; then
+            sumatra_exe="SumatraPDF"
+        else
+            local exe
+            for exe in "$LOCALAPPDATA/SumatraPDF/SumatraPDF.exe" \
+                       "/c/Program Files/SumatraPDF/SumatraPDF.exe" \
+                       "/c/Program Files (x86)/SumatraPDF/SumatraPDF.exe" \
+                       "$LOCALAPPDATA/Microsoft/WinGet/Links/SumatraPDF.exe"; do
+                if [[ -x "$exe" ]]; then sumatra_exe="$exe"; break; fi
+            done
+        fi
+        if [[ -n "$sumatra_exe" ]]; then
+            echo "Okular not found. Opening in SumatraPDF presentation mode..."
+            "$sumatra_exe" -presentation "$native_path" &>/dev/null &
+            disown 2>/dev/null
+            _pdf_present_nav_help
+            return 0
+        fi
+
+        echo "Okular/SumatraPDF not found. Opening with default PDF viewer..."
+        cmd.exe //c start "" "$native_path"
+        return 0
+    fi
+
+    # Linux / other Unix
+    if command -v okular >/dev/null 2>&1; then
+        echo "Opening presentation in Okular..."
+        # env -i clears variables that can cause library conflicts (e.g. inside venvs/conda)
+        env -i PATH="$PATH" HOME="$HOME" DISPLAY="$DISPLAY" \
+            WAYLAND_DISPLAY="$WAYLAND_DISPLAY" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+            okular --presentation "$abs_pdf_path" &>/dev/null &
+        local okular_pid=$!
+        sleep 0.5
+        if ps -p "$okular_pid" >/dev/null 2>&1; then
+            disown 2>/dev/null
+            _pdf_present_nav_help
+            return 0
+        fi
+        echo "Okular failed to start. Trying alternative viewers..."
+    fi
+
+    if command -v evince >/dev/null 2>&1; then
+        echo "Opening in Evince presentation mode..."
+        evince --presentation "$abs_pdf_path" &>/dev/null &
+        disown 2>/dev/null
+        return 0
+    fi
+
+    local browser
+    for browser in google-chrome chromium-browser chromium; do
+        if command -v "$browser" >/dev/null 2>&1; then
+            echo "Opening in $browser..."
+            "$browser" --start-fullscreen "file://$abs_pdf_path" &>/dev/null &
+            disown 2>/dev/null
+            echo "Press F11 to toggle full screen"
+            return 0
+        fi
+    done
+
+    echo "No presentation-capable viewer found. Opening with default PDF viewer..."
+    xdg-open "$abs_pdf_path" &>/dev/null &
+}
+
+
 
 # Usage:
 # pdfpages firstpage lastpage inputfile
