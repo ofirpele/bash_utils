@@ -1,6 +1,5 @@
 # Bash Utils
 
-**Version:** 1.2.0  
 **Author:** Ofir Pele (ofirpele@gmail.com)
 
 ## Overview
@@ -18,11 +17,12 @@ The most useful parts to me are:
 
 To install (will be installed in ~/bash_utils directly from the online repo, not from the local repo):
 ```bash
-source aliases.sh
+source bashrc.sh
 update_bash_utils
 ```
 
-If you want to use WinMerge for git (recommended; Beyond Compare Pro Edition is also great, but the free and standard versions do not include 3-way merge) and some other useful git customizations, you should edit dot_gitconfig and then:
+If you want to use Beyond Compare or WinMerge for git, edit this file and then run the following.
+Beyond Compare Pro Edition is great, but the free and standard versions do not include 3-way merge. 
 ```bash 
 mv dot_gitconfig ~/.gitconfig
 ```
