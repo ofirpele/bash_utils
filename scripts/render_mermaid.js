@@ -5,14 +5,14 @@
  * each block into an SVG image and writes a copy of the presentation that
  * points to those images. Marp then builds the PDF from that copy.
  *
- * Usage (normally called by marp_create_presentation_full in aliases_marp.sh):
+ * Usage (normally called by marp_create_presentation in aliases_marp.sh):
  *     cd "$(git rev-parse --show-toplevel)"
  *     node ~/bash_utils/scripts/render_mermaid.js [--force-full]
  *
  *     --force-full  Render every diagram again. Without it, a diagram that
  *                   matches the same-numbered diagram in the version of
  *                   presentation.md at git HEAD, and whose SVG already exists,
- *                   is not rendered again. marp_create_presentation_full
+ *                   is not rendered again. marp_create_presentation
  *                   always passes this flag.
  *
  * Required project layout (paths are relative to the current directory, which

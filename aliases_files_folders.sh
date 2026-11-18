@@ -205,7 +205,7 @@ pdf_view()
 
     # If SumatraPDF is on PATH, just use it.
     if command -v SumatraPDF >/dev/null 2>&1; then
-        SumatraPDF -reuse-instance "$pdf_file" &
+        ( SumatraPDF -reuse-instance "$pdf_file" >/dev/null 2>&1 & )
         return 0
     fi
 
@@ -219,7 +219,7 @@ pdf_view()
     local exe
     for exe in "${candidates[@]}"; do
         if [[ -x "$exe" ]]; then
-            "$exe" -reuse-instance "$pdf_file" &
+            ( "$exe" -reuse-instance "$pdf_file" >/dev/null 2>&1 & )
             return 0
         fi
     done

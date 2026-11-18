@@ -75,16 +75,6 @@ function marp_check()
 function marp_create_presentation()
 {
     _marp_cd_root || return 1
-    _marp_require_file "$_MARP_WITH_IMAGES" "Run 'marp_create_presentation_full' first to render diagrams" || return 1
-    _marp_ensure_cli || return 1
-
-    echo "Using cached presentation (no re-rendering)..."
-    _marp_build_pdf "$_MARP_WITH_IMAGES"
-}
-
-function marp_create_presentation_full()
-{
-    _marp_cd_root || return 1
     _marp_require_file "$_MARP_SOURCE" || return 1
     _marp_ensure_cli || return 1
 
