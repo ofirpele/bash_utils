@@ -57,7 +57,7 @@ function _marp_build_pdf()
     fi
 
     echo "Successfully generated: $_MARP_OUTPUT"
-    pdf_present "$_MARP_OUTPUT"
+    pdf_view "$_MARP_OUTPUT"
 }
 
 function _marp_run_check()
