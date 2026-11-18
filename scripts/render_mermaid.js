@@ -1,3 +1,49 @@
+/**
+ * render_mermaid.js - Pre-render Mermaid diagrams in a Marp presentation to SVG.
+ *
+ * Marp can't render ```mermaid blocks in a PDF by itself, so this script turns
+ * each block into an SVG image and writes a copy of the presentation that
+ * points to those images. Marp then builds the PDF from that copy.
+ *
+ * Usage (normally called by marp_create_presentation_full in aliases_marp.sh):
+ *     cd "$(git rev-parse --show-toplevel)"
+ *     node ~/bash_utils/scripts/render_mermaid.js [--force-full]
+ *
+ *     --force-full  Render every diagram again. Without it, a diagram that
+ *                   matches the same-numbered diagram in the version of
+ *                   presentation.md at git HEAD, and whose SVG already exists,
+ *                   is not rendered again. marp_create_presentation_full
+ *                   always passes this flag.
+ *
+ * Required project layout (paths are relative to the current directory, which
+ * must be the git repository root):
+ *
+ *     <repo root>/
+ *       presentation/
+ *         presentation.md               # Source slides (Marp markdown), with ```mermaid blocks
+ *         presentation.css              # Marp theme; must declare  /* @theme presentation *\/
+ *         diagrams/                     # Generated: diagram_N.mmd + diagram_N.svg (created if missing)
+ *         presentation_with_images.md   # Generated: blocks replaced by ![Diagram N](diagrams/diagram_N.svg)
+ *         presentation.pdf              # Generated afterward by marp (aliases_marp.sh)
+ *
+ * The folder must be named "presentation" and the files "presentation.md" and
+ * "presentation.css". These names are hardcoded here and in aliases_marp.sh.
+ *
+ * Notes:
+ *   - Diagrams are numbered 1..N in the order they appear. Adding or removing
+ *     a diagram renumbers the ones after it. Keep that in mind for the
+ *     git-HEAD cache, and don't hand-edit files in diagrams/.
+ *   - The first "theme: <name>" line in presentation.md is changed to
+ *     "theme: presentation" in the generated copy, so the custom CSS theme is used.
+ *   - Diagrams use a dark theme with a transparent background (white text,
+ *     lavender #b19cd9 borders) and are limited to 800x500.
+ *   - Rendering uses `npx -y -p @mermaid-js/mermaid-cli@11 mmdc`, so it needs
+ *     Node.js and network access the first time (Puppeteer/Chromium download).
+ *   - A temporary presentation/mermaid-config.json is written and then deleted.
+ *   - The exit code is 1 if any diagram fails to render. The generated
+ *     markdown is still written.
+ */
+
 const fs = require('fs');
 const { execSync } = require('child_process');
 const path = require('path');
